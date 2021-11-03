@@ -1,0 +1,26 @@
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script type="text/javascript" src="./assets/stats.js"></script>
+    <link rel="stylesheet" href="./assets/style.sass">
+</head>
+
+<body>
+    <div id="overlay">
+        <div id="nickname" class="header">読込中...</div>
+        <div id="progress" class="header">
+            <div id="clear">00勝</div>
+            <div id="failure">00敗</div>
+            <svg class="progressbar">
+                <rect id="background-win" rx="0" ry="0" x="0" y="40" width="450" height="30"></rect>
+                <rect id="background-lose" rx="0" ry="0" x="450" y="40" width="450" height="30"></rect>
+            </svg>
+        </div>
+        <div id="current-grade-point" class="header">評価400</div>
+    </div>
+</body>
+
+</html>
