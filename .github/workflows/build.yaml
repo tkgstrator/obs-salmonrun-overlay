@@ -1,0 +1,66 @@
+name: build executables
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout commit
+        uses: actions/checkout@master
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@master
+        with: { python-version: 3.9 }
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip PyInstaller
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: build
+        run: pyinstaller main.py --onefile --name OBS-Salmonrun-Overlay
+
+      - name: upload
+        uses: actions/upload-artifact@v1
+        with:
+          name: OBS-Salmonrun-Overlay
+          path: dist/OBS-Salmonrun-Overlay.exe
+
+  release:
+    needs: [windows-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows
+        uses: actions/download-artifact@v1
+        with:
+          name: OBS-Salmonrun-Overlay
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Zip
+        run: zip --junk-paths OBS-Salmonrun-Overlay ./OBS-Salmonrun-Overlay/OBS-Salmonrun-Overlay.exe
+
+      - name: Append Binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./OBS-Salmonrun-Overlay.zip
+          asset_name: OBS-Salmonrun-Overlay.zip
+          asset_content_type: application/zip
