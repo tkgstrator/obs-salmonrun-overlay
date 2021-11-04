@@ -32,7 +32,7 @@ class Stats:
 
 
 class User:
-    def __init__(self, dict):
+    def __init__(self, dict = None):
         self.nsaid = dict["nsaid"]
         self.nickname = dict["nickname"]
         self.iksm_session = dict["iksm_session"]
@@ -49,6 +49,7 @@ class User:
         self.my_golden_ikura_total = dict["my_golden_ikura_total"]
         self.kuma_point_total = dict["kuma_point_total"]
         self.job_num = dict["job_num"]
+
 
     def reset(self):
         self.clear = 0
@@ -81,10 +82,42 @@ class User:
 
 class SalmonOverlay:
     def __init__(self):
-        with open("config.json", mode="r") as f:
-            config = json.load(f)
-            self.accounts = list(map(lambda x: User(x), config["account"]))
-            self.version = config["version"]
+        try:
+            with open("config.json", mode="r") as f:
+                config = json.load(f)
+                self.accounts = list(map(lambda x: User(x), config["account"]))
+                self.apitoken = config["apitoken"]
+                self.version = config["version"]
+        except FileNotFoundError:
+            print(f"\r{datetime.now().strftime('%H:%M:%S')} config.jsonがないので作成しました")
+            with open("config.json", mode="w") as f:
+                content = {
+                    "version": None,
+                    "apitoken": None,
+                    "account": [
+                        {
+                            "nsaid": None,
+                            "iksm_session": None,
+                            "session_token": None,
+                            "nickname": None,
+                            "clear": 0,
+                            "failure": 0,
+                            "job_num": 0,
+                            "help_total": 0,
+                            "dead_total": 0,
+                            "failure_counts": [0, 0, 0],
+                            "grade_point": 0,
+                            "my_golden_ikura_total": 0,
+                            "my_ikura_total": 0,
+                            "team_golden_ikura_total": 0,
+                            "team_ikura_total": 0,
+                            "kuma_point_total": 0
+                        }
+                    ]
+                }
+                json.dump(content, f, indent=4)
+            sys.exit()
+            
 
     def update(self, user: User):
         # 共有データを更新
@@ -94,6 +127,7 @@ class SalmonOverlay:
                     account = user
             json.dump({
                 "version": self.version,
+                "apitoken": self.apitoken,
                 "account": list(map(lambda x: x.__dict__, self.accounts))
             }, f, indent=4, ensure_ascii=False)
         # 表示用のJSONを出力
@@ -106,15 +140,19 @@ def update_forever():
         try:
             stats = Stats(iksm._get_coop_summary(user.iksm_session)["summary"]["stats"][0])
             if user.job_num == stats.job_num:
-                print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかりませんでした")
+                pass
+                # print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかりませんでした")
             else:
                 current_time = int(time.time())
                 if current_time >= stats.end_time:
-                    print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかりませんでした")
+                    pass
+                    # print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかりませんでした")
                 else:
                     user.set(stats)
                     overlay.update(user)
                     print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかり、データを更新しました")
+        except KeyboardInterrupt:
+            sys.exit(1)
         except (KeyError, ValueError) as e:
             print(e)
         time.sleep(5)
@@ -145,7 +183,7 @@ if __name__ == "__main__":
     print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}が選択されました")
     print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}の認証情報が有効かチェックしています")
     if iksm._check_iksm_session_validation(user.iksm_session):
-        print(f"{user.nickname}の認証情報は有効でした")
+        print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}の認証情報は有効でした")
     else:
         print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}の認証情報は有効期限切れでした")
         print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}の認証情報を再生成します")
@@ -154,9 +192,13 @@ if __name__ == "__main__":
             sys.exit(1)
         else:
             # ユーザのセッショントークンを再生成
-            user.iksm_session = iksm.get_cookie(user.session_token, overlay.version)
-            print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}の認証情報を更新しました")
-            overlay.update(user)
+            try:
+                user.iksm_session = iksm.get_cookie(user.session_token, overlay.version)
+                print(f"{datetime.now().strftime('%H:%M:%S')} {user.nickname}の認証情報を更新しました")
+                overlay.update(user)
+            except Exception as e:
+                print(e)
+                sys.exit()
 
     # 最新のバイトリザルトを取得
     stats = Stats(iksm._get_coop_summary(user.iksm_session)["summary"]["stats"][0])

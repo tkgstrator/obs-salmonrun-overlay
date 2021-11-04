@@ -56,7 +56,7 @@ def _get_splatoon_token(access_token, version):
 
         response = requests.post(url, headers=header, json=parameter)
         return json.loads(response.text)["result"]["webApiServerCredential"]["accessToken"]
-    except:
+    except KeyError:
         raise ValueError(f"X-Product Version {version} is no longer available")
 
 
