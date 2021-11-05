@@ -1,4 +1,5 @@
 import sys
+import os
 import http.server
 import socketserver
 import threading
@@ -32,7 +33,7 @@ class Stats:
 
 
 class User:
-    def __init__(self, dict = None):
+    def __init__(self, dict=None):
         self.nsaid = dict["nsaid"]
         self.nickname = dict["nickname"]
         self.iksm_session = dict["iksm_session"]
@@ -49,7 +50,6 @@ class User:
         self.my_golden_ikura_total = dict["my_golden_ikura_total"]
         self.kuma_point_total = dict["kuma_point_total"]
         self.job_num = dict["job_num"]
-
 
     def reset(self):
         self.clear = 0
@@ -117,7 +117,6 @@ class SalmonOverlay:
                 }
                 json.dump(content, f, indent=4)
             sys.exit()
-            
 
     def update(self, user: User):
         # 共有データを更新
@@ -140,13 +139,11 @@ def update_forever():
         try:
             stats = Stats(iksm._get_coop_summary(user.iksm_session)["summary"]["stats"][0])
             if user.job_num == stats.job_num:
-                pass
-                # print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかりませんでした")
+                continue
             else:
                 current_time = int(time.time())
                 if current_time >= stats.end_time:
-                    pass
-                    # print(f"\r{datetime.now().strftime('%H:%M:%S')} 新しいリザルトが見つかりませんでした")
+                    continue
                 else:
                     user.set(stats)
                     overlay.update(user)
@@ -159,6 +156,10 @@ def update_forever():
 
 
 if __name__ == "__main__":
+    if os.name == "nt":
+        import _locale
+        _locale._getdefaultlocale_backup = _locale._getdefaultlocale
+        _locale._getdefaultlocale = (lambda *args: (_locale._getdefaultlocale_backup()[0], 'UTF-8'))
     overlay = SalmonOverlay()
     user: User = None
 
